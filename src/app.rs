@@ -24,6 +24,5 @@ pub fn build(inertia_config: axum_inertia::InertiaConfig) -> Router {
         .nest_service("/assets", ServeDir::new("dist/assets"))
         .layer(middleware::from_fn(crate::middleware::auth::resolve_user))
         .layer(Extension(app_state))
-        .layer(middleware::from_fn(crate::middleware::request_id::middleware))
         .with_state(inertia_config)
 }
