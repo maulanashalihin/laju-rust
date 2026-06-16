@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:backend": "cargo watch -w src -w Cargo.toml -x run",
+    "dev:backend": "cargo watch --why -w src -w Cargo.toml -x run",
     "dev:all": "concurrently -n fe,be -c cyan,green \"npm run dev\" \"npm run dev:backend\"",
     "build": "vite build",
     "preview": "vite preview",
