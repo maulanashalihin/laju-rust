@@ -1,0 +1,21 @@
+[package]
+name = "laju-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sailfish = "0.10"
+rocksdb = "0.24"
+axum-inertia = "0.8"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+argon2 = "0.5"
+rand_core = { version = "0.6", features = ["getrandom"] }
+axum-extra = { version = "0.10", features = ["cookie"] }
+chrono = { version = "0.4", features = ["serde"] }

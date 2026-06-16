@@ -1,0 +1,10 @@
+pub mod app;
+pub mod config;
+pub mod db;
+pub mod errors;
+pub mod handlers;
+pub mod inertia;
+pub mod middleware;
+pub mod models;
+pub mod routes;
+pub mod services;
