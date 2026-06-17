@@ -1,240 +1,204 @@
 # Laju Rust
 
-A modern full-stack boilerplate built with **Axum**, **Inertia.js**, and **Svelte 5** — designed for speed in both runtime performance and developer experience.
+A modern full-stack boilerplate built with **Axum**, **Inertia.js**, and **Svelte 5**.
 
-"Laju" means speed in Indonesian. This project lives up to the name.
-
-## Philosophy
-
-### Speed as a feature, not an accident
-
-Every component in this stack was chosen for measurable performance. Axum's async routing, RocksDB's LSM-tree write throughput, Svelte's compile-time reactivity, Vite's instant HMR — none of these are aesthetic choices. They are engineering decisions validated by benchmark data.
-
-### Embedded over client-server
-
-RocksDB instead of PostgreSQL. Sailfish instead of a dedicated template engine server. The entire backend compiles into a single binary — no daemons, no connection pools, no Docker Compose dependency. Deployment is `scp` + `systemctl restart`.
-
-### Layers, not frameworks
-
-`handlers -> services -> repositories -> models` — four layers, each with one job. The handler extracts HTTP data, the service runs business logic, the repository queries the database, and the model defines the shape. No dependency injection framework, no ORM, no proc-macro magic. Just Rust functions calling Rust functions.
-
-### SSR by default, SPA by choice
-
-Marketing pages (Home, About) are server-rendered Sailfish templates — zero JavaScript, instant first paint. Authenticated pages (Dashboard, Profile) use Inertia.js for progressive enhancement. The handler decides per-route which rendering method to use, not the framework.
-
-### Warm palette, not UI kit
-
-The Velocity design system uses a warm industrial palette (orange/amber/yellow) that references the Rust programming language's brand identity — not the generic indigo/violet/fuchsia gradient that every AI-generated template ships. No design system dependency, no component library. Just Tailwind utilities and consistent spacing.
+"Laju" means speed in Indonesian.
 
 ## Tech Stack
 
 ### Backend
-- **Axum 0.8** — async HTTP framework with type-safe routing and Tower middleware
-- **Sailfish 0.10** — compile-time templates for the Inertia root shell
-- **SQLite v3 (via sqlx 0.8)** — optional SQL backend with async pooling and migration
-- **RocksDB 0.24** — embedded persistent key-value storage (default)
+- **Axum 0.8** — async HTTP framework
+- **RocksDB 0.24** — embedded key-value storage (default, unggul 3-28x dari SQLite via sqlx)
+- **SQLite via sqlx 0.8** — SQL backend opsional, switch via `DB_BACKEND=sqlite`
+- **Sailfish 0.10** — compile-time templates for SSR pages
 - **Argon2** — password hashing
 - **tokio** — async runtime
 
 ### Frontend
-- **Svelte 5** — reactive UI framework with runes (`$state`, `$derived`, `$effect`)
-- **Inertia.js v3** — server-driven SPA adapter (no REST API boilerplate)
-- **Vite 8** — instant HMR and production builds
-- **Tailwind CSS 4** — utility-first styling with CSS-first configuration
-- **TypeScript 6** — end-to-end type safety
+- **Svelte 5** — reactive UI with runes
+- **Inertia.js v3** — server-driven SPA (no REST API boilerplate)
+- **Vite 8** — HMR and builds
+- **Tailwind CSS 4** — CSS-first config, class-based dark mode
+- **TypeScript 6**
 
-## Features
-
-- **Dual database** — RocksDB (default) or SQLite via sqlx, switchable via `DB_BACKEND` env
-- **Authentication** — user registration, login, session management (cookie-based)
-- **Profile edit** — update name and email with validation
-- **Dark mode** — OS-aware with manual toggle, persisted to `localStorage`
-- **"Velocity" design system** — warm Rust-engineered palette, bento grids, terminal-style auth
-
-## Getting Started
-
-### Prerequisites
-
-- Rust 1.85+ (edition 2021)
-- Node.js 22+
-- npm
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd laju-rust
-
-# Install Node dependencies
 npm install
-
-# Run both frontend and backend in development
 npm run dev:all
 ```
 
-The frontend dev server starts at `http://localhost:5173` and the Axum backend at `http://localhost:3000`. Open the backend URL in your browser.
+Buka `http://localhost:3000`. Frontend Vite di `:5173`, Axum backend di `:3000`.
 
-### Development Commands
+### Commands
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev:all` | Frontend + backend bersamaan |
+| `npm run dev` | Frontend Vite saja |
+| `npm run dev:backend` | Backend Rust (auto-reload via cargo-watch) |
+| `npm run build` | Build frontend ke `dist/` |
+| `npm run check` | svelte-check (TypeScript diagnostics) |
+| `cargo test` | Rust unit tests (6 tests, service + repository) |
+
+### Production Build
 
 ```bash
-npm run dev            # Frontend only (Vite dev server)
-npm run dev:backend    # Backend only (cargo watch + auto-reload)
-npm run dev:all        # Both simultaneously
-npm run build          # Production build (Vite)
-npm run check          # Svelte type-checking
+npm run build                  # Frontend
+cargo build --release          # Binary ~15MB
+DB_BACKEND=rocksdb ./target/release/laju-rust
 ```
 
-## Production Build
-
-```bash
-# 1. Build frontend — compile Svelte + Tailwind ke dist/assets/
-npm run build
-
-# 2. Build backend — single binary (~15MB)
-cargo build --release
-
-# 3. Run
-./target/release/laju-rust
-```
-
-Binary serve `dist/assets/` via `/assets` route (`ServeDir` in `app.rs`). Set env `DEV_MODE=false` untuk production. Ganti database backend via `DB_BACKEND=rocksdb|sqlite`. Deploy cukup binary + `dist/` folder — tidak ada dependency runtime lain.
+Deploy cukup binary + `dist/` folder. Set `DEV_MODE=false` untuk production.
 
 ## Project Structure
 
 ```
 laju-rust/
 ├── src/                    # Rust backend
-│   ├── bin/
-│   │   └── bench.rs        # DB benchmark (RocksDB vs SQLite)
-│   ├── main.rs             # Entry point — router, middleware, startup
-│   ├── app.rs              # AppState, shared database handle
-│   ├── config.rs           # Environment / CLI config
-│   ├── handlers/           # Request handlers
-│   │   ├── home.rs         # GET /
-│   │   ├── about.rs        # GET /about
-│   │   └── auth.rs         # Login, register, logout, dashboard
-│   ├── inertia/            # Inertia server configuration
-│   ├── middleware/          # Axum middleware (auth guard)
-│   ├── models/             # Data models
-│   ├── repositories/       # Database query layer (RocksDB via serde_json)
-│   └── services/           # Business logic (panggil repository)
+│   ├── bin/                # Benchmark binaries
+│   │   ├── bench.rs        # DB throughput (raw ops)
+│   │   ├── http_bench.rs   # HTTP endpoint (full Axum stack)
+│   │   └── api_bench.rs    # API CRUD (POST/GET/PUT/DELETE)
+│   ├── main.rs             # Entry point
+│   ├── lib.rs              # Module registry (test crate root)
+│   ├── app.rs              # AppState, DbPool enum, router builder
+│   ├── config.rs           # Env vars: DEV_MODE, DB_BACKEND, DB_PATH, etc.
+│   ├── db/
+│   │   ├── rocksdb.rs      # RocksDB init
+│   │   └── sqlite.rs       # SQLite init + migration runner
+│   ├── models/             # User, Session structs (Serialize + Deserialize)
+│   ├── repositories/       # Async trait + dual impl (RocksDB / SQLite)
+│   ├── services/           # Business logic (panggil trait repository)
+│   ├── handlers/           # HTTP handlers (home, about, auth, profile)
+│   ├── middleware/          # Auth guard — resolve user from cookie
+│   ├── routes/             # URL → handler mapping
+│   └── inertia/            # Inertia server config (Sailfish root shell)
 ├── ui/                     # Svelte 5 frontend
 │   ├── main.ts             # Vite entry — mounts Inertia app
-│   ├── app.svelte          # Root component shell
+│   ├── app.svelte          # Root shell
 │   ├── app.css             # Global styles, grid bg, keyframes, dark variant
-│   ├── Layout.svelte       # Shared layout — navbar (dark toggle) + footer
+│   ├── Layout.svelte       # Navbar (dark toggle) + footer
 │   └── Pages/              # One Svelte file per Inertia page
-│       ├── Home.svelte     # Landing page (speedometer, stats, bento, terminal)
-│       ├── About.svelte    # Tech stack showcase
-│       ├── Dashboard.svelte# Authenticated profile
-│       ├── Login.svelte    # Terminal-style login
-│       └── Register.svelte # Terminal-style registration
 ├── templates/
-│   └── root.stpl           # Sailfish template (HTML shell + no-flash script)
-├── data/                   # Runtime data (RocksDB lives here)
-├── index.html              # Vite entry HTML
-├── vite.config.ts          # Vite config (svelte, inertia, tailwind plugins)
-├── tsconfig.json
-├── svelte.config.js
-└── sailfish.toml
+│   ├── root.stpl           # Inertia HTML shell
+│   ├── home.stpl           # SSR home page
+│   └── about.stpl          # SSR about page
+├── migrations/             # SQLite schema migrations
+├── data/                   # Runtime data (RocksDB)
+├── vite.config.ts
+├── sailfish.toml
+└── tsconfig.json
 ```
-
-## Design System ("Velocity")
-
-The UI follows the **Velocity** design language — a warm, industrial palette inspired by the Rust programming language's brand identity.
-
-| Token | Value | Usage |
-|---|---|---|
-| Brand gradient | `orange-600 -> amber-500 -> yellow-400` | Headlines, CTAs, logo |
-| Speed accent | `amber-400/500` | Speedometer, bento icons, architecture dots |
-| Live status | `emerald-400/500` | Session indicators, pulse dots, success state |
-| Neutrals | `stone-*` (warm grays) | Backgrounds, cards, borders |
-| Code syntax | `cyan-400` | Terminal keywords, URLs |
-| Error | `red-400` | Validation, error banners |
-
-### Key Visual Elements
-
-- **Speedometer gauge** — animated needle sweep on the landing page hero
-- **Counting stats** — numbers animate from zero when scrolled into view
-- **Live terminal demo** — command typing simulation with syntax highlighting
-- **Bento grid** — modular card layout with varying tile sizes
-- **Architecture flow** — horizontal node diagram with animated request dots
-- **Grid background** — subtle engineering-blueprint texture across all pages
-- **Terminal-style auth** — secure-shell aesthetic for login and registration
 
 ## Architecture
 
+### Layer Flow
+
 ```
-Browser  ->  Svelte 5  ->  Inertia.js  ->  Axum  ->  RocksDB
-(Client)    (Frontend)    (Adapter)      (Backend) (Storage)
+Request → middleware/auth (resolve user) → routes → handlers
+  → services → repositories → models → RocksDB / SQLite
 ```
 
-A request travels through five layers, each with a single responsibility. Inertia.js eliminates the need for a separate REST API by letting the server control page state directly.
+Handler bisa pilih rendering method:
 
-Database layer is abstracted behind async traits (`UserRepository`, `SessionRepository`) with two implementations:
-- **RocksDB** — key-value, best for mixed and random-access workloads (default)
-- **SQLite (via sqlx)** — SQL queries, switchable at runtime via `DB_BACKEND=sqlite`
+| Method | Output | Cocok untuk |
+|---|---|---|
+| `inertia.render("Page", json!({...}))` | SPA via `ui/Pages/` | Auth, dashboard, halaman interaktif |
+| Render `.stpl` langsung | SSR HTML | Landing, SEO, halaman statis |
+
+### Dual Rendering
+
+Marketing pages (Home, About) adalah SSR via Sailfish templates — zero JavaScript. Halaman authenticated (Dashboard, Profile, Login, Register) pake Inertia SPA. Handler decide per-route.
+
+### Props Contract
+
+| Page | Handler | Props |
+|---|---|---|
+| Home | `home.rs` | `title`, `description` |
+| About | `about.rs` | `title`, `stack[]` |
+| Login | `auth.rs` | `{}` + `errors`, `flash` |
+| Register | `auth.rs` | `{}` + `errors`, `flash` |
+| Dashboard | `auth.rs` | `user: {name, email, role}` |
+| Profile | `profile.rs` | `user: {name, email, role}` + `errors`, `flash` |
+
+### Dual Database
+
+Backend bisa switch RocksDB ↔ SQLite via `DB_BACKEND`. Repository layer pake `async_trait`:
+
+```rust
+let svc = AuthService::new(&state.db);
+let user = svc.register(&name, &email, &pass).await?;
+```
+
+Kedua backend implement trait yang sama — handler nggak peduli database apa yang dipake.
+
+## Auth (Login, Register)
+
+- **Real HTML POST forms** — bukan Inertia `useForm`. Handler redirect kalo sukses, render page dengan error props kalo gagal.
+- **Terminal-style UI**: dark card, 3 dots title bar, `>` prompt, mono font, emerald execute button.
+- **Form field names** harus cocok sama Rust struct: `email`, `password`, `name`, `password_confirmation`, `remember`, `terms`.
+- **Logout**: `<form method="POST" action="/logout">`.
+
+## Design System ("Velocity")
+
+| Token | Warna | Pemakaian |
+|---|---|---|
+| Brand gradient | `orange-600 → amber-500 → yellow-400` | Headline, CTA, logo |
+| Speed accent | `amber-400/500` | Speedometer, icons, stats |
+| Live / success | `emerald-400/500` | Pulse dot, session indicator |
+| Neutrals | `stone-*` (BUKAN `gray-*`) | Background, card, border, text |
+| Code / syntax | `cyan-400` | Terminal npx, URL |
+| Error | `red-400/500` | Validasi |
+
+**JANGAN pakai**: `indigo-*`, `violet-*`, `fuchsia-*`, `gray-*`.
 
 ## Dark Mode
 
-Dark mode uses a class-based approach via Tailwind's `@custom-variant dark`:
-
-1. **Before paint**: An inline script in `root.stpl` reads `localStorage` (or falls back to `prefers-color-scheme`) and adds `.dark` to `<html>` — zero flash.
-2. **During render**: Tailwind's `dark:` utilities activate based on the `.dark` class.
-3. **Toggle**: The navbar button toggles `.dark` on `<html>` and persists the choice to `localStorage`.
+- Class-based: `@custom-variant dark (&:where(.dark, .dark *))` di `app.css`.
+- Inline script di `root.stpl` set `.dark` sebelum paint — zero flash.
+- Toggle di navbar → simpan ke `localStorage.theme`.
 
 ## Benchmark
 
-### Internal: RocksDB vs SQLite (via sqlx)
+Semua benchmark ada di `src/bin/`. Jalanin dengan:
 
-Benchmark hasil dari `cargo run --bin bench --release` — membandingkan native RocksDB dengan SQLite melalui sqlx async di workload yang sama.
-
-| Workload | 100Kx100B | | 200Kx100B | | 100Kx1KB | |
-|---|---|---|---|---|---|---|
-| | RocksDB | SQLite | RocksDB | SQLite | RocksDB | SQLite |
-| Write | 1.6M ops/s | 184K | 1.4M | 183K | 229K | 160K |
-| Random Read | 1.2M | 62K | 624K | 61K | 388K | 60K |
-| Scan | 10.2M | 1.8M | 4.8M | 1.8M | 771K | 1.8M 🏆 |
-| Delete | 567K | 59K | 649K | 59K | 645K | 58K |
-
-RocksDB unggul 6-19x di write, random read, dan delete. SQLite unggul di scan large values.
-
-### External: 4-Way Language x Database
-
-Benchmark lintas bahasa: Rust+RocksDB vs Go+RocksDB vs Rust+SQLite vs Go+SQLite (25 workload combos).
-
-| Rank | Combo | Total Ops/s |
-|---|---|---|
-| 1 | Rust+SQLite (raw C) | 26,258,228 |
-| 2 | **Rust+RocksDB** | **17,121,155** |
-| 3 | Go+RocksDB | 8,360,302 |
-| 4 | Go+SQLite | 6,457,113 |
-
-Rust+RocksDB menang di workload yang penting buat web backend: **mixed read-write, random reads, dan large value operations** — 16 dari 25 workload combos. SQLite unggul di sequential scan dan small-value batch write.
-
-### When to Use Which Stack
-
-| Stack | Best For | Trade-offs |
-|---|---|---|
-| **Rust + RocksDB** | Storage engines, time-series, message queues, random access, delete-intensive | Slow dev cycle, 10MB+ binary, requires tuning (bloom filter, compaction, block cache) |
-| **Rust + SQLite** | Analytics/ETL, desktop/mobile apps, report generation, small value KV, bulk delete | Poor mixed workload, larger DB size (446MB vs 54MB for 100Kx1KB), single-writer bottleneck |
-| **Go + RocksDB** | Teams already on Go needing 50-70% of Rust performance, small binary (1.7MB) | CGo overhead (30-50%), C memory management risks, dynamic linking dependency |
-| **Go + SQLite** | Quick CRUD apps, internal tooling, small datasets | Slowest in every category — CGo + database/sql overhead |
-
-### Decision Matrix
-
+```sh
+cargo run --bin bench --release       # DB throughput mentah
+cargo run --bin http_bench --release  # HTTP endpoint (full stack)
+cargo run --bin api_bench --release   # API CRUD (POST/GET/PUT/DELETE)
 ```
-Need max performance?
-  Yes → Team knows Rust?
-    Yes → Rust + RocksDB (recommended)
-    No  → Rust + SQLite (scan/write) or Go + RocksDB (mixed)
-  No  → Need SQL queries?
-    Yes → Rust + SQLite or Go + SQLite
-    No  → Go + RocksDB
-  Need small binary & easy deploy?
-    → Go + RocksDB (1.7MB) or SQLite (single file)
-```
+
+### 1. API CRUD (raw ops)
+
+| Operasi | RocksDB | SQLite via sqlx | Gap |
+|---|---|---|---|
+| Create (POST) | 484K ops/s | 159K | 3x |
+| Read (GET) | **2.0M** | 71K | **28x** |
+| Update (PUT) | 452K | 148K | 3x |
+| Delete (DELETE) | 527K | 68K | 7.7x |
+
+### 2. HTTP Endpoint (full Axum stack)
+
+| Endpoint | RocksDB | SQLite | Keterangan |
+|---|---|---|---|
+| Register (POST) | 43 ops/s | 44 ops/s | Bottleneck Argon2 (22ms) |
+| Login (POST) | 88 ops/s | 85 ops/s | Bottleneck Argon2 (11ms) |
+| Dashboard (GET) | **73K** | 27K | RocksDB 2.7x |
+| Profile (GET) | **73K** | 28K | RocksDB 2.6x |
+
+### 3. DB Throughput (100Kx100B)
+
+| Workload | RocksDB | SQLite | Gap |
+|---|---|---|---|
+| Write | **1.6M** ops/s | 184K | 8.7x |
+| Random Read | **1.2M** | 62K | 19x |
+| Scan | **10.2M** | 1.8M | 5.7x |
+| Delete | **567K** | 59K | 9.6x |
+
+### Takeaway
+
+RocksDB unggul di semua workload yang relevan buat web backend. SQLite lebih lambat di benchmark ini karena kena overhead sqlx async (pool checkout, query prepare, type mapping). Di HTTP level, gap-nya mengecil karena Argon2 dan serialisasi HTTP dominan.
 
 ## License
 
