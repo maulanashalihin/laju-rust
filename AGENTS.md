@@ -20,7 +20,16 @@ root.stpl (Sailfish) → <body> → #app → Svelte entry (main.ts)
     → Page.svelte (content via {@render children()})
 ```
 
-Backend layer flow: `handlers` → `services` → `repositories` → `models` (RocksDB via serde_json)
+Backend layer flow: `handlers` → `services` → `repositories` → `models` (RocksDB via serde_json, or SQLite via sqlx)
+
+Services now use **async trait repositories** for dual backend support:
+```rust
+// Service receives &DbPool, not Arc<DB>
+let svc = AuthService::new(&state.db);
+svc.register(&name, &email, &pass).await?;
+```
+
+`DbPool` is an enum (`RocksDb(Arc<DB>)` | `Sqlite(Pool)`) in `app.rs`. Switch backend via `DB_BACKEND=rocksdb|sqlite`.
 
 ### Dual rendering: Inertia SPA vs full SSR
 
@@ -47,6 +56,7 @@ consumes `usePage().props`.
 | `Login` | `src/handlers/auth.rs` | `{}` + shared `errors`, `flash` |
 | `Register` | `src/handlers/auth.rs` | `{}` + shared `errors`, `flash` |
 | `Dashboard` | `src/handlers/auth.rs` | `user: {name, email, role}` |
+| `Profile` | `src/handlers/profile.rs` | `user: {name, email, role}` + shared `errors`, `flash` |
 
 Shared Inertia props (always present): `errors: Record<string, string[]>`, `flash: {success?: string, message?: string}`.
 
@@ -132,3 +142,5 @@ Applied on `<body>` via `@layer base` in `app.css` (48px grid, 4-5% opacity). Pa
 - `root.stpl` inline script uses `(stored === null && prefersDark)` — note `null` not `undefined`. This is correct: `localStorage.getItem` returns `null` for missing keys.
 - New module (`mod repositories`) must be registered in BOTH `main.rs` AND `lib.rs` — the binary target uses `main.rs` as crate root, while tests build from `lib.rs`.
 - The Rust `register_submit` handler (line 31) redirects to `/register` when passwords don't match, without setting any flash/error message. The frontend shows no feedback for this case.
+- All `mod` declarations MUST be added to BOTH `main.rs` AND `lib.rs` (binary vs test crate roots).
+- Repositories use `async_trait` — methods are `async fn`. Service calls must `.await`.

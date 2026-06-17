@@ -41,48 +41,71 @@ pub use artikel::*;  // tambah
 
 ### Step 2 — Repository (`src/repositories/`)
 
-Buat `src/repositories/artikel.rs` (query database di sini doang):
+Buat `src/repositories/artikel.rs` dengan async trait:
 
 ```rust
+use async_trait::async_trait;
 use std::sync::Arc;
 use rocksdb::DB;
+use crate::app::DbPool;
 use crate::models::Artikel;
 
-pub struct ArtikelRepository {
+#[async_trait]
+pub trait ArtikelRepository: Send + Sync {
+    async fn save(&self, artikel: &Artikel) -> Result<(), String>;
+    async fn find_by_id(&self, id: &str) -> Result<Option<Artikel>, String>;
+    async fn list_all(&self) -> Result<Vec<Artikel>, String>;
+}
+
+pub struct RocksDbArtikelRepository {
     pub db: Arc<DB>,
 }
 
-impl ArtikelRepository {
+impl RocksDbArtikelRepository {
     pub fn new(db: Arc<DB>) -> Self { Self { db } }
+}
 
-    pub fn save(&self, artikel: &Artikel) -> Result<(), String> {
-        let key = format!("artikel:{}", artikel.id);
-        let value = serde_json::to_vec(artikel).map_err(|e| format!("Ser: {}", e))?;
-        self.db.put(key.as_bytes(), &value).map_err(|e| format!("DB: {}", e))
+#[async_trait]
+impl ArtikelRepository for RocksDbArtikelRepository {
+    async fn save(&self, artikel: &Artikel) -> Result<(), String> {
+        let db = self.db.clone();
+        let artikel = artikel.clone();
+        tokio::task::spawn_blocking(move || {
+            let key = format!("artikel:{}", artikel.id);
+            let value = serde_json::to_vec(&artikel).map_err(|e| format!("Ser: {}", e))?;
+            db.put(key.as_bytes(), &value).map_err(|e| format!("DB: {}", e))
+        }).await.map_err(|e| format!("Join: {}", e))?
     }
 
-    pub fn find_by_id(&self, id: &str) -> Result<Option<Artikel>, String> {
-        let key = format!("artikel:{}", id);
-        match self.db.get(key.as_bytes()) {
-            Ok(Some(data)) => Ok(Some(serde_json::from_slice(&data).map_err(|e| format!("Deser: {}", e))?)),
-            Ok(None) => Ok(None),
-            Err(e) => Err(format!("DB: {}", e)),
-        }
-    }
-
-    pub fn list_all(&self) -> Result<Vec<Artikel>, String> {
-        let mut all = vec![];
-        let iter = self.db.iterator(rocksdb::IteratorMode::From(b"artikel:", rocksdb::Direction::Forward));
-        for item in iter {
-            match item {
-                Ok((key, value)) => {
-                    if !key.starts_with(b"artikel:") { break; }
-                    all.push(serde_json::from_slice(&value).map_err(|e| format!("Deser: {}", e))?);
-                }
-                Err(e) => return Err(format!("Iter: {}", e)),
+    async fn find_by_id(&self, id: &str) -> Result<Option<Artikel>, String> {
+        let db = self.db.clone();
+        let id = id.to_string();
+        tokio::task::spawn_blocking(move || {
+            let key = format!("artikel:{}", id);
+            match db.get(key.as_bytes()) {
+                Ok(Some(data)) => Ok(Some(serde_json::from_slice(&data).map_err(|e| format!("Deser: {}", e))?)),
+                Ok(None) => Ok(None),
+                Err(e) => Err(format!("DB: {}", e)),
             }
-        }
-        Ok(all)
+        }).await.map_err(|e| format!("Join: {}", e))?
+    }
+
+    async fn list_all(&self) -> Result<Vec<Artikel>, String> {
+        let db = self.db.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut all = vec![];
+            let iter = db.iterator(rocksdb::IteratorMode::From(b"artikel:", rocksdb::Direction::Forward));
+            for item in iter {
+                match item {
+                    Ok((key, value)) => {
+                        if !key.starts_with(b"artikel:") { break; }
+                        all.push(serde_json::from_slice(&value).map_err(|e| format!("Deser: {}", e))?);
+                    }
+                    Err(e) => return Err(format!("Iter: {}", e)),
+                }
+            }
+            Ok(all)
+        }).await.map_err(|e| format!("Join: {}", e))?
     }
 }
 ```
@@ -97,40 +120,45 @@ pub mod artikel;
 
 ### Step 3 — Service (`src/services/`)
 
-Buat `src/services/artikel.rs` (logic aja, nggak tahu soal key format):
+Buat `src/services/artikel.rs` — service terima `DbPool`, panggil repository via trait:
 
 ```rust
-use std::sync::Arc;
-use rocksdb::DB;
-use uuid::Uuid;
-use chrono::Utc;
+use crate::app::DbPool;
 use crate::models::Artikel;
-use crate::repositories::ArtikelRepository;
+use crate::repositories::{ArtikelRepository, RocksDbArtikelRepository};
 
 pub struct ArtikelService {
-    repo: ArtikelRepository,
+    repo: Box<dyn ArtikelRepository>,
 }
 
 impl ArtikelService {
-    pub fn new(db: Arc<DB>) -> Self {
-        Self { repo: ArtikelRepository::new(db) }
+    pub fn new(pool: &DbPool) -> Self {
+        match pool {
+            DbPool::RocksDb(db) => Self {
+                repo: Box::new(RocksDbArtikelRepository::new(db.clone())),
+            },
+            DbPool::Sqlite(pool) => {
+                // TODO: SqliteArtikelRepository impl
+                todo!("SQLite not implemented for this example")
+            },
+        }
     }
 
-    pub fn buat(&self, judul: &str, isi: &str, penulis_id: &str) -> Result<Artikel, String> {
+    pub async fn buat(&self, judul: &str, isi: &str, penulis_id: &str) -> Result<Artikel, String> {
         let artikel = Artikel {
-            id: Uuid::new_v4().to_string(), judul: judul.into(), isi: isi.into(),
-            penulis_id: penulis_id.into(), created_at: Utc::now().timestamp(),
+            id: uuid::Uuid::new_v4().to_string(), judul: judul.into(), isi: isi.into(),
+            penulis_id: penulis_id.into(), created_at: chrono::Utc::now().timestamp(),
         };
-        self.repo.save(&artikel)?;
+        self.repo.save(&artikel).await?;
         Ok(artikel)
     }
 
-    pub fn get(&self, id: &str) -> Result<Option<Artikel>, String> {
-        self.repo.find_by_id(id)
+    pub async fn get(&self, id: &str) -> Result<Option<Artikel>, String> {
+        self.repo.find_by_id(id).await
     }
 
-    pub fn list_all(&self) -> Result<Vec<Artikel>, String> {
-        self.repo.list_all()
+    pub async fn list_all(&self) -> Result<Vec<Artikel>, String> {
+        self.repo.list_all().await
     }
 }
 ```
@@ -167,8 +195,8 @@ pub async fn index(
     Extension(_user): Extension<Option<User>>,
     Extension(state): Extension<Arc<AppState>>,
 ) -> Response {
-    let svc = ArtikelService::new(state.db.clone());
-    let artikel = svc.list_all().unwrap_or_default();
+    let svc = ArtikelService::new(&state.db);
+    let artikel = svc.list_all().await.unwrap_or_default();
     inertia.render("Artikel", json!({ "artikel": artikel })).into_response()
 }
 
@@ -176,8 +204,8 @@ pub async fn create(
     Extension(state): Extension<Arc<AppState>>,
     Form(form): Form<BuatForm>,
 ) -> Response {
-    let svc = ArtikelService::new(state.db.clone());
-    match svc.buat(&form.judul, &form.isi, "") {
+    let svc = ArtikelService::new(&state.db);
+    match svc.buat(&form.judul, &form.isi, "").await {
         Ok(_) => Redirect::to("/artikel").into_response(),
         Err(_) => Redirect::to("/artikel").into_response(),
     }
@@ -241,8 +269,8 @@ npm run dev:all  # jalanin, test manual
 ## Checklist tiap fitur baru
 
 - [ ] Model: struct + derive Serialize/Deserialize + daftar di `mod.rs`
-- [ ] Repository: query CRUD + daftar di `src/repositories/mod.rs`
-- [ ] Service: logic (panggil repository, bukan DB langsung) + daftar di `src/services/mod.rs`
+- [ ] Repository: async trait + dua impl (RocksDb/Sqlite) + daftar di `src/repositories/mod.rs`
+- [ ] Service: panggil trait repository via `&DbPool`, async methods + daftar di `src/services/mod.rs`
 - [ ] Handler: handler function + daftar di `src/handlers/mod.rs`
 - [ ] Route: mapping URL-nya di `routes/mod.rs`
 - [ ] Page: Svelte file di `ui/Pages/` + layout + props sesuai handler
