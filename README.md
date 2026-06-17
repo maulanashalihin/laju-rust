@@ -97,7 +97,6 @@ cargo build --release
 ```
 
 Binary serve `dist/assets/` via `/assets` route (`ServeDir` in `app.rs`). Set env `DEV_MODE=false` untuk production. Deploy cukup binary + `dist/` folder — tidak ada dependency runtime lain.
-```
 
 ## Project Structure
 
