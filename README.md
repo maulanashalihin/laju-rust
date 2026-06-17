@@ -4,6 +4,18 @@ A modern full-stack boilerplate built with **Axum**, **Inertia.js**, and **Svelt
 
 "Laju" means speed in Indonesian.
 
+## Philosophy
+
+**Speed as a feature, not an accident.** Every component was chosen for measurable performance — Axum's async routing, RocksDB's LSM-tree write throughput, Svelte's compile-time reactivity. Validated by benchmark, not marketing.
+
+**Embedded over client-server.** RocksDB instead of PostgreSQL. Sailfish instead of a dedicated template engine. The entire backend compiles into a single binary — no daemons, no connection pools, no Docker Compose. Deployment is `scp` + `systemctl restart`.
+
+**Layers, not frameworks.** `handlers → services → repositories → models`. Each layer has one job. No DI framework, no ORM, no proc-macro magic. Just Rust functions calling Rust functions.
+
+**SSR by default, SPA by choice.** Marketing pages are server-rendered Sailfish templates (zero JS, instant first paint). Authenticated pages use Inertia.js for progressive enhancement. The handler decides per-route which rendering method to use.
+
+**Warm palette, not UI kit.** Orange/amber/yellow references the Rust brand identity — not the generic indigo/violet/fuchsia gradient every AI template ships. No design system dependency, no component library. Just Tailwind utilities and consistent spacing.
+
 ## Tech Stack
 
 ### Backend
