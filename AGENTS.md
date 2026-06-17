@@ -22,6 +22,8 @@ root.stpl (Sailfish) → <body> → #app → Svelte entry (main.ts)
 
 Backend layer flow: `handlers` → `services` → `repositories` → `models` (RocksDB via serde_json, or SQLite via sqlx)
 
+**Default database adalah RocksDB** — unggul 6-19x di write, random read, delete dibanding SQLite via sqlx. SQLite tersedia sebagai opsi via `DB_BACKEND=sqlite` untuk project yang butuh SQL query.
+
 Services now use **async trait repositories** for dual backend support:
 ```rust
 // Service receives &DbPool, not Arc<DB>
@@ -29,7 +31,7 @@ let svc = AuthService::new(&state.db);
 svc.register(&name, &email, &pass).await?;
 ```
 
-`DbPool` is an enum (`RocksDb(Arc<DB>)` | `Sqlite(Pool)`) in `app.rs`. Switch backend via `DB_BACKEND=rocksdb|sqlite`.
+`DbPool` is an enum (`RocksDb(Arc<DB>)` | `Sqlite(Pool)`) in `app.rs`. Default: `RocksDb`. Switch via `DB_BACKEND=sqlite`.
 
 ### Dual rendering: Inertia SPA vs full SSR
 
