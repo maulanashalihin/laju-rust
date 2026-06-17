@@ -5,6 +5,7 @@ mod handlers;
 mod inertia;
 mod middleware;
 mod models;
+mod repositories;
 mod routes;
 mod services;
 

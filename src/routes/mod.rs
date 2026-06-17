@@ -12,4 +12,5 @@ where
         .route("/login", get(crate::handlers::auth::login_page).post(crate::handlers::auth::login_submit))
         .route("/logout", post(crate::handlers::auth::logout))
         .route("/dashboard", get(crate::handlers::auth::dashboard))
+        .route("/profile", get(crate::handlers::profile::edit_page).post(crate::handlers::profile::update))
 }

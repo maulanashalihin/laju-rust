@@ -23,12 +23,15 @@ pub async fn register_page(
 }
 
 pub async fn register_submit(
+    inertia: Inertia,
     jar: CookieJar,
     Extension(state): Extension<Arc<AppState>>,
     Form(form): Form<RegisterForm>,
 ) -> Response {
     if form.password != form.password_confirmation {
-        return Redirect::to("/register").into_response();
+        return inertia.render("Register", json!({
+            "errors": {"password_confirmation": ["Password tidak cocok"]},
+        })).into_response();
     }
     let svc = AuthService::new(state.db.clone());
     match svc.register(&form.name, &form.email, &form.password) {
@@ -40,7 +43,9 @@ pub async fn register_submit(
                 Err(_) => Redirect::to("/login").into_response(),
             }
         }
-        Err(_) => Redirect::to("/register").into_response(),
+        Err(e) => inertia.render("Register", json!({
+            "errors": {"email": [e]},
+        })).into_response(),
     }
 }
 
@@ -53,6 +58,7 @@ pub async fn login_page(
 }
 
 pub async fn login_submit(
+    inertia: Inertia,
     jar: CookieJar,
     Extension(state): Extension<Arc<AppState>>,
     Form(form): Form<LoginForm>,
@@ -62,7 +68,9 @@ pub async fn login_submit(
         Ok((sid, _)) => {
             (jar.add(("session_id", sid)), Redirect::to("/dashboard")).into_response()
         }
-        Err(_) => Redirect::to("/login").into_response(),
+        Err(e) => inertia.render("Login", json!({
+            "errors": {"email": [e]},
+        })).into_response(),
     }
 }
 

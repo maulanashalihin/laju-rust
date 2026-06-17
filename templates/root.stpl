@@ -4,11 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
+    <script>
+      // Apply the stored theme before paint to avoid a flash of the wrong
+      // colors. Order: explicit localStorage choice > OS preference > light.
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (stored === null && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) { /* localStorage may be blocked; fall back to OS */ }
+      })();
+    </script>
     <% if !dev_mode { %>
     <link rel="stylesheet" href="<%= asset_url %>/assets/app.css">
     <% } %>
 </head>
-<body>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
     <div id="app"></div>
     <script data-page="app" type="application/json"><%- page_json %></script>
     <script type="module" src="<%= asset_url %>/ui/main.ts"></script>
