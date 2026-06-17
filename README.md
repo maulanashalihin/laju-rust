@@ -182,6 +182,8 @@ Dark mode uses a class-based approach via Tailwind's `@custom-variant dark`:
 
 ### Overall
 
+Overall ops/s adalah agregat dari SEMUA workload termasuk sequential scan (di mana SQLite dominan). Untuk web backend, workload yang lebih relevan adalah random read, mixed read-write, dan large value — lihat tabel per-workload di bawah.
+
 | Rank | Combo | Total Ops/s |
 |---|---|---|
 | 1 | Rust+SQLite | 26,258,228 |
