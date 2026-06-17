@@ -4,6 +4,28 @@ A modern full-stack boilerplate built with **Axum**, **Inertia.js**, and **Svelt
 
 "Laju" means speed in Indonesian. This project lives up to the name.
 
+## Philosophy
+
+### Speed as a feature, not an accident
+
+Every component in this stack was chosen for measurable performance. Axum's async routing, RocksDB's LSM-tree write throughput, Svelte's compile-time reactivity, Vite's instant HMR — none of these are aesthetic choices. They are engineering decisions validated by benchmark data.
+
+### Embedded over client-server
+
+RocksDB instead of PostgreSQL. Sailfish instead of a dedicated template engine server. The entire backend compiles into a single binary — no daemons, no connection pools, no Docker Compose dependency. Deployment is `scp` + `systemctl restart`.
+
+### Layers, not frameworks
+
+`handlers -> services -> repositories -> models` — four layers, each with one job. The handler extracts HTTP data, the service runs business logic, the repository queries the database, and the model defines the shape. No dependency injection framework, no ORM, no proc-macro magic. Just Rust functions calling Rust functions.
+
+### SSR by default, SPA by choice
+
+Marketing pages (Home, About) are server-rendered Sailfish templates — zero JavaScript, instant first paint. Authenticated pages (Dashboard, Profile) use Inertia.js for progressive enhancement. The handler decides per-route which rendering method to use, not the framework.
+
+### Warm palette, not UI kit
+
+The Velocity design system uses a warm industrial palette (orange/amber/yellow) that references the Rust programming language's brand identity — not the generic indigo/violet/fuchsia gradient that every AI-generated template ships. No design system dependency, no component library. Just Tailwind utilities and consistent spacing.
+
 ## Tech Stack
 
 ### Backend
