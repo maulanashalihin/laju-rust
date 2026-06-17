@@ -2,6 +2,7 @@
 name = "laju-rust"
 version = "0.1.0"
 edition = "2021"
+default-run = "laju-rust"
 
 [dependencies]
 axum = "0.8"
