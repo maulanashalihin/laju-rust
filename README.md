@@ -31,7 +31,8 @@ The Velocity design system uses a warm industrial palette (orange/amber/yellow) 
 ### Backend
 - **Axum 0.8** — async HTTP framework with type-safe routing and Tower middleware
 - **Sailfish 0.10** — compile-time templates for the Inertia root shell
-- **RocksDB 0.24** — embedded persistent key-value storage
+- **SQLite v3 (via sqlx 0.8)** — optional SQL backend with async pooling and migration
+- **RocksDB 0.24** — embedded persistent key-value storage (default)
 - **Argon2** — password hashing
 - **tokio** — async runtime
 
@@ -44,8 +45,9 @@ The Velocity design system uses a warm industrial palette (orange/amber/yellow) 
 
 ## Features
 
+- **Dual database** — RocksDB (default) or SQLite via sqlx, switchable via `DB_BACKEND` env
 - **Authentication** — user registration, login, session management (cookie-based)
-- **Dashboard** — authenticated profile view with account management
+- **Profile edit** — update name and email with validation
 - **Dark mode** — OS-aware with manual toggle, persisted to `localStorage`
 - **"Velocity" design system** — warm Rust-engineered palette, bento grids, terminal-style auth
 
@@ -96,13 +98,15 @@ cargo build --release
 ./target/release/laju-rust
 ```
 
-Binary serve `dist/assets/` via `/assets` route (`ServeDir` in `app.rs`). Set env `DEV_MODE=false` untuk production. Deploy cukup binary + `dist/` folder — tidak ada dependency runtime lain.
+Binary serve `dist/assets/` via `/assets` route (`ServeDir` in `app.rs`). Set env `DEV_MODE=false` untuk production. Ganti database backend via `DB_BACKEND=rocksdb|sqlite`. Deploy cukup binary + `dist/` folder — tidak ada dependency runtime lain.
 
 ## Project Structure
 
 ```
 laju-rust/
 ├── src/                    # Rust backend
+│   ├── bin/
+│   │   └── bench.rs        # DB benchmark (RocksDB vs SQLite)
 │   ├── main.rs             # Entry point — router, middleware, startup
 │   ├── app.rs              # AppState, shared database handle
 │   ├── config.rs           # Environment / CLI config
@@ -168,6 +172,10 @@ Browser  ->  Svelte 5  ->  Inertia.js  ->  Axum  ->  RocksDB
 
 A request travels through five layers, each with a single responsibility. Inertia.js eliminates the need for a separate REST API by letting the server control page state directly.
 
+Database layer is abstracted behind async traits (`UserRepository`, `SessionRepository`) with two implementations:
+- **RocksDB** — key-value, best for mixed and random-access workloads (default)
+- **SQLite (via sqlx)** — SQL queries, switchable at runtime via `DB_BACKEND=sqlite`
+
 ## Dark Mode
 
 Dark mode uses a class-based approach via Tailwind's `@custom-variant dark`:
@@ -178,59 +186,40 @@ Dark mode uses a class-based approach via Tailwind's `@custom-variant dark`:
 
 ## Benchmark
 
-4-Way benchmark: Rust+RocksDB vs Go+RocksDB vs Rust+SQLite vs Go+SQLite across 25 workload combos.
+### Internal: RocksDB vs SQLite (via sqlx)
 
-### Overall
+Benchmark hasil dari `cargo run --bin bench --release` — membandingkan native RocksDB dengan SQLite melalui sqlx async di workload yang sama.
 
-Overall ops/s adalah agregat dari SEMUA workload termasuk sequential scan (di mana SQLite dominan). Untuk web backend, workload yang lebih relevan adalah random read, mixed read-write, dan large value — lihat tabel per-workload di bawah.
+| Workload | 100Kx100B | | 200Kx100B | | 100Kx1KB | |
+|---|---|---|---|---|---|---|
+| | RocksDB | SQLite | RocksDB | SQLite | RocksDB | SQLite |
+| Write | 1.6M ops/s | 184K | 1.4M | 183K | 229K | 160K |
+| Random Read | 1.2M | 62K | 624K | 61K | 388K | 60K |
+| Scan | 10.2M | 1.8M | 4.8M | 1.8M | 771K | 1.8M 🏆 |
+| Delete | 567K | 59K | 649K | 59K | 645K | 58K |
+
+RocksDB unggul 6-19x di write, random read, dan delete. SQLite unggul di scan large values.
+
+### External: 4-Way Language x Database
+
+Benchmark lintas bahasa: Rust+RocksDB vs Go+RocksDB vs Rust+SQLite vs Go+SQLite (25 workload combos).
 
 | Rank | Combo | Total Ops/s |
 |---|---|---|
-| 1 | Rust+SQLite | 26,258,228 |
+| 1 | Rust+SQLite (raw C) | 26,258,228 |
 | 2 | **Rust+RocksDB** | **17,121,155** |
 | 3 | Go+RocksDB | 8,360,302 |
 | 4 | Go+SQLite | 6,457,113 |
 
-### Head-to-Head Wins
-
-Rust+RocksDB leads in **mixed workloads**, **random reads**, and **large value** operations — winning 16 out of 25 workload combos.
-
-### Per-Workload
-
-| Workload | Rust+RocksDB | Rust+SQLite | Go+RocksDB | Go+SQLite | Winner |
-|---|---|---|---|---|---|
-| Write 100Kx100B | 287K ops/s | 385K ops/s | 169K | 249K | Rust+SQLite |
-| Write 1Mx100B | 286K | 496K | 185K | 310K | Rust+SQLite |
-| Write 1Mx1KB | 181K 🏆 | 33K | 132K | 31K | **Rust+RocksDB** |
-| Random Read 100Kx100B | 953K 🚀 | 291K | 334K | 108K | **Rust+RocksDB** |
-| Random Read 1Mx100B | 288K | 255K | 155K | 102K | **Rust+RocksDB** |
-| Random Read 1Mx1KB | 178K | 32K | 117K | 25K | **Rust+RocksDB** |
-| Scan 100Kx100B | 5.9M | 10.7M 🚀 | 2.7M | 1.4M | Rust+SQLite |
-| Scan 1Mx100B | 4.2M | 8.3M 🚀 | 1.7M | 1.4M | Rust+SQLite |
-| Scan 1Mx1KB | 980K 🏆 | 786K | 557K | 432K | **Rust+RocksDB** |
-| Mixed 100Kx100B | 333K 🏆 | 70K | 174K | 51K | **Rust+RocksDB** |
-| Mixed 1Mx100B | 238K 🏆 | 42K | 126K | 36K | **Rust+RocksDB** |
-| Mixed 1Mx1KB | 142K 🏆 | 15K | 83K | 13K | **Rust+RocksDB** |
-| Delete 100Kx100B | 271K | 860K 🚀 | 134K | 398K | Rust+SQLite |
-| Delete 1Mx100B | 323K | 705K 🚀 | 188K | 416K | Rust+SQLite |
-| Delete 1Mx1KB | 320K 🏆 | 114K | 191K | 100K | **Rust+RocksDB** |
-
-### Key Takeaways
-
-- **Rust+RocksDB** — best for mixed workloads, random reads, and large values (1KB+). The combo used in this boilerplate.
-- **Rust+SQLite** — sequential scan monster (10.7M ops/s) and excels at small writes with batch transactions. Better if your app is read-heavy on sequential data.
-- **Go+RocksDB** — closest competitor to Rust but never wins. Binary size advantage (1.7MB vs 10MB).
-- **Go+SQLite** — last in every category. CGo + database/sql overhead is significant.
-
-Rust+RocksDB wins the workloads that matter most for a web backend: random reads (user lookup by ID/email), mixed read-write (auth + session + CRUD), and large value operations.
+Rust+RocksDB menang di workload yang penting buat web backend: **mixed read-write, random reads, dan large value operations** — 16 dari 25 workload combos. SQLite unggul di sequential scan dan small-value batch write.
 
 ### When to Use Which Stack
 
 | Stack | Best For | Trade-offs |
 |---|---|---|
-| **Rust + RocksDB** | Storage engines, time-series pipelines, high-throughput message queues, random access patterns, delete-intensive workloads | Slow dev cycle, 10MB+ binary, requires tuning (bloom filter, compaction, block cache) |
-| **Rust + SQLite** | Analytics/ETL, desktop/mobile apps, report generation, small value KV, bulk delete with batch tx | Poor mixed workload, larger DB size (446MB vs 54MB for 100Kx1KB), single-writer bottleneck |
-| **Go + RocksDB** | Teams already on Go needing 50-70% of Rust performance, small binary (1.7MB), fast prototyping | CGo overhead (30-50%), C memory management risks, dynamic linking dependency |
+| **Rust + RocksDB** | Storage engines, time-series, message queues, random access, delete-intensive | Slow dev cycle, 10MB+ binary, requires tuning (bloom filter, compaction, block cache) |
+| **Rust + SQLite** | Analytics/ETL, desktop/mobile apps, report generation, small value KV, bulk delete | Poor mixed workload, larger DB size (446MB vs 54MB for 100Kx1KB), single-writer bottleneck |
+| **Go + RocksDB** | Teams already on Go needing 50-70% of Rust performance, small binary (1.7MB) | CGo overhead (30-50%), C memory management risks, dynamic linking dependency |
 | **Go + SQLite** | Quick CRUD apps, internal tooling, small datasets | Slowest in every category — CGo + database/sql overhead |
 
 ### Decision Matrix
