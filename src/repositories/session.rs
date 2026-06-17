@@ -86,14 +86,19 @@ impl SessionRepository for SqliteSessionRepository {
     }
 
     async fn find_by_id(&self, id: &str) -> Result<Option<Session>, String> {
-        let row: Option<(String, String, i64)> = sqlx::query_as(
-            "SELECT id, user_id, strftime('%s', created_at) FROM sessions WHERE id = ?",
+        let row: Option<(String, String, String)> = sqlx::query_as(
+            "SELECT id, user_id, created_at FROM sessions WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| format!("DB: {}", e))?;
-        Ok(row.map(|r| Session { id: r.0, user_id: r.1, created_at: r.2 }))
+        Ok(row.map(|r| Session {
+            id: r.0, user_id: r.1,
+            created_at: chrono::DateTime::parse_from_rfc3339(&r.2)
+                .map(|dt| dt.timestamp())
+                .unwrap_or_else(|_| chrono::Utc::now().timestamp()),
+        }))
     }
 
     async fn delete(&self, id: &str) -> Result<(), String> {
