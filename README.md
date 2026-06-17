@@ -83,6 +83,22 @@ npm run build          # Production build (Vite)
 npm run check          # Svelte type-checking
 ```
 
+## Production Build
+
+```bash
+# 1. Build frontend — compile Svelte + Tailwind ke dist/assets/
+npm run build
+
+# 2. Build backend — single binary (~15MB)
+cargo build --release
+
+# 3. Run
+./target/release/laju-rust
+```
+
+Binary serve `dist/assets/` via `/assets` route (`ServeDir` in `app.rs`). Set env `DEV_MODE=false` untuk production. Deploy cukup binary + `dist/` folder — tidak ada dependency runtime lain.
+```
+
 ## Project Structure
 
 ```
