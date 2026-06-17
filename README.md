@@ -185,6 +185,29 @@ Rust+RocksDB leads in **mixed workloads**, **random reads**, and **large value**
 
 Rust+RocksDB wins the workloads that matter most for a web backend: random reads (user lookup by ID/email), mixed read-write (auth + session + CRUD), and large value operations.
 
+### When to Use Which Stack
+
+| Stack | Best For | Trade-offs |
+|---|---|---|
+| **Rust + RocksDB** | Storage engines, time-series pipelines, high-throughput message queues, random access patterns, delete-intensive workloads | Slow dev cycle, 10MB+ binary, requires tuning (bloom filter, compaction, block cache) |
+| **Rust + SQLite** | Analytics/ETL, desktop/mobile apps, report generation, small value KV, bulk delete with batch tx | Poor mixed workload, larger DB size (446MB vs 54MB for 100Kx1KB), single-writer bottleneck |
+| **Go + RocksDB** | Teams already on Go needing 50-70% of Rust performance, small binary (1.7MB), fast prototyping | CGo overhead (30-50%), C memory management risks, dynamic linking dependency |
+| **Go + SQLite** | Quick CRUD apps, internal tooling, small datasets | Slowest in every category — CGo + database/sql overhead |
+
+### Decision Matrix
+
+```
+Need max performance?
+  Yes → Team knows Rust?
+    Yes → Rust + RocksDB (recommended)
+    No  → Rust + SQLite (scan/write) or Go + RocksDB (mixed)
+  No  → Need SQL queries?
+    Yes → Rust + SQLite or Go + SQLite
+    No  → Go + RocksDB
+  Need small binary & easy deploy?
+    → Go + RocksDB (1.7MB) or SQLite (single file)
+```
+
 ## License
 
 MIT
