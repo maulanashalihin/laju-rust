@@ -33,10 +33,10 @@ pub async fn register_submit(
             "errors": {"password_confirmation": ["Password tidak cocok"]},
         })).into_response();
     }
-    let svc = AuthService::new(state.db.clone());
-    match svc.register(&form.name, &form.email, &form.password) {
+    let svc = AuthService::new(&state.db);
+    match svc.register(&form.name, &form.email, &form.password).await {
         Ok(_) => {
-            match svc.login(&form.email, &form.password) {
+            match svc.login(&form.email, &form.password).await {
                 Ok((sid, _)) => {
                     (jar.add(("session_id", sid)), Redirect::to("/dashboard")).into_response()
                 }
@@ -63,8 +63,8 @@ pub async fn login_submit(
     Extension(state): Extension<Arc<AppState>>,
     Form(form): Form<LoginForm>,
 ) -> Response {
-    let svc = AuthService::new(state.db.clone());
-    match svc.login(&form.email, &form.password) {
+    let svc = AuthService::new(&state.db);
+    match svc.login(&form.email, &form.password).await {
         Ok((sid, _)) => {
             (jar.add(("session_id", sid)), Redirect::to("/dashboard")).into_response()
         }
@@ -79,8 +79,8 @@ pub async fn logout(
     Extension(state): Extension<Arc<AppState>>,
 ) -> Response {
     if let Some(c) = jar.get("session_id") {
-        let svc = AuthService::new(state.db.clone());
-        let _ = svc.logout(c.value());
+        let svc = AuthService::new(&state.db);
+        let _ = svc.logout(c.value()).await;
     }
     (jar.remove("session_id"), Redirect::to("/")).into_response()
 }

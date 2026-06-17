@@ -3,6 +3,8 @@
 pub struct AppConfig {
     /// Development mode (default: true)
     pub dev_mode: bool,
+    /// Database backend: "rocksdb" atau "sqlite" (default: "rocksdb")
+    pub db_backend: String,
     /// Path ke RocksDB storage (default: "data/rocksdb")
     pub db_path: String,
     /// Server listen address (default: "0.0.0.0:3000")
@@ -19,6 +21,8 @@ impl AppConfig {
                 .ok()
                 .and_then(|v| v.parse::<bool>().ok())
                 .unwrap_or(true),
+            db_backend: std::env::var("DB_BACKEND")
+                .unwrap_or_else(|_| "rocksdb".into()),
             db_path: std::env::var("DB_PATH")
                 .unwrap_or_else(|_| "data/rocksdb".into()),
             server_addr: std::env::var("SERVER_ADDR")

@@ -36,8 +36,8 @@ pub async fn update(
         None => return Redirect::to("/login").into_response(),
     };
 
-    let svc = AuthService::new(state.db.clone());
-    match svc.update_profile(&current_user.id, &form.name, &form.email) {
+    let svc = AuthService::new(&state.db);
+    match svc.update_profile(&current_user.id, &form.name, &form.email).await {
         Ok(u) => inertia.render("Profile", json!({
             "user": {"name": u.name, "email": u.email, "role": u.role},
             "flash": {"success": "Profil berhasil diupdate"},

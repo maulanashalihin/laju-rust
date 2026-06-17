@@ -20,8 +20,8 @@ pub async fn resolve_user(
 
     let user = if let Some(sid) = session_id {
         if let Some(state) = req.extensions().get::<Arc<AppState>>() {
-            let svc = AuthService::new(state.db.clone());
-            svc.get_user_by_session(&sid).ok().flatten()
+            let svc = AuthService::new(&state.db);
+            svc.get_user_by_session(&sid).await.unwrap_or(None)
         } else { None }
     } else { None };
 
