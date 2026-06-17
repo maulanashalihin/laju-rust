@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Laju Rust</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (stored === null && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <% if !dev_mode { %>
+    <link rel="stylesheet" href="<%= asset_url %>/assets/app.css">
+    <% } %>
+    <style>
+      @keyframes flow-x {
+        0% { left: 0; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { left: calc(100% - 6px); opacity: 0; }
+      }
+    </style>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
+  <div class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <header class="sticky top-0 z-40 w-full border-b border-stone-200/80 dark:border-stone-800/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-stone-950/70">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+          <div class="flex items-center gap-8">
+            <a href="/" class="flex items-center gap-2.5" aria-label="Laju Rust home">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400 shadow-sm shadow-amber-500/20" aria-hidden="true">
+                <svg viewBox="0 0 24 24" class="w-4 h-4 text-white" fill="currentColor"><path d="M13 2L4 14h7l-2 8 9-12h-7l2-8z"/></svg>
+              </span>
+              <span class="text-base font-semibold tracking-tight bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent dark:from-amber-400 dark:via-orange-400 dark:to-yellow-300">Laju Rust</span>
+            </a>
+            <nav class="flex items-center gap-1" aria-label="Primary">
+              <a href="/" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100/60 dark:hover:bg-stone-800/40">Home</a>
+              <a href="/about" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors text-stone-900 dark:text-white bg-stone-100 dark:bg-stone-800/60">About</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Header -->
+    <section class="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-24">
+      <div class="rounded-2xl border border-stone-800 bg-stone-950 overflow-hidden shadow-2xl shadow-amber-500/10">
+        <div class="flex items-center gap-2 px-4 py-3 border-b border-stone-800 bg-stone-900/50">
+          <span class="w-3 h-3 rounded-full bg-red-500" aria-hidden="true"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500" aria-hidden="true"></span>
+          <span class="w-3 h-3 rounded-full bg-emerald-500" aria-hidden="true"></span>
+          <span class="ml-3 text-xs font-mono text-stone-500">~/laju-rust/README.md</span>
+        </div>
+        <div class="p-6 sm:p-8">
+          <p class="font-mono text-xs text-stone-500 uppercase tracking-widest">// ABOUT.md</p>
+          <h1 class="mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-balance text-white">
+            <span class="bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent dark:from-amber-400 dark:via-orange-400 dark:to-yellow-300">About</span> Laju Rust
+          </h1>
+          <p class="mt-5 text-base sm:text-lg text-stone-400 max-w-2xl text-pretty">Laju Rust is a carefully curated boilerplate combining battle-tested Rust backend with a modern reactive frontend. Here's what powers it.</p>
+          <div class="mt-6 flex items-center gap-4 font-mono text-xs text-stone-500">
+            <span>7 technologies</span>
+            <span class="w-1 h-1 rounded-full bg-stone-600"></span>
+            <span>MIT license</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stack -->
+    <section class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24">
+      <div class="text-center mb-8">
+        <p class="text-xs font-mono uppercase tracking-wider text-amber-600 dark:text-amber-400">Stack</p>
+        <h2 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-100 text-balance">Every layer, deliberately chosen</h2>
+        <p class="mt-3 text-base text-stone-600 dark:text-stone-300 max-w-2xl mx-auto">Seven tools. Zero bloat. The stack you'd build yourself.</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <% let items = [ ("Axum","Async web framework"), ("Sailfish","Compile-time templates"), ("RocksDB","Embedded KV store"), ("Inertia.js v3","Server-driven SPA adapter"), ("Svelte 5","Reactive UI with runes"), ("Vite 8","Instant HMR build tool"), ("Tailwind CSS 4","Zero-config utility CSS") ]; for (name, desc) in items { %>
+        <div class="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/60 p-5 sm:p-6 transition-all hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-0.5">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 font-mono font-bold text-xs mb-3"><%= name.chars().take(2).collect::<String>() %></div>
+          <p class="font-semibold text-sm text-stone-900 dark:text-stone-100"><%= name %></p>
+          <p class="text-xs text-stone-500 dark:text-stone-400 mt-0.5"><%= desc %></p>
+        </div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24">
+      <div class="text-center mb-10">
+        <p class="text-xs font-mono uppercase tracking-wider text-amber-600 dark:text-amber-400">Architecture</p>
+        <h2 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-100 text-balance">How it fits together</h2>
+        <p class="mt-3 text-base text-stone-600 dark:text-stone-300 max-w-2xl mx-auto">A request travels through five layers, each with a single responsibility.</p>
+      </div>
+      <div class="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/60 p-6 sm:p-8">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 lg:gap-0">
+          <div class="flex-1 flex flex-col items-center text-center min-w-0">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-3">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <p class="text-[10px] font-mono uppercase tracking-wider text-stone-500">Client</p>
+            <p class="text-sm font-semibold text-stone-900 dark:text-stone-100 mt-0.5">Browser</p>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Window to the app</p>
+          </div>
+          <div class="hidden lg:block flex-1 h-px bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 mx-2 self-center relative overflow-hidden"></div>
+          <div class="lg:hidden h-px w-12 mx-auto bg-stone-300 dark:bg-stone-700"></div>
+          <% let layers = [ ("Frontend","Svelte 5","Reactive components","<polyline points='16 18 22 12 16 6'/><polyline points='8 6 2 12 8 18'/>"), ("Adapter","Inertia.js","SPA bridge","<polyline points='17 1 21 5 17 9'/><path d='M3 11V9a4 4 0 0 1 4-4h14'/><polyline points='7 23 3 19 7 15'/><path d='M21 13v2a4 4 0 0 1-4 4H3'/>"), ("Backend","Axum","Async routing","<rect x='2' y='3' width='20' height='8' rx='2'/><rect x='2' y='13' width='20' height='8' rx='2'/><path d='M6 7h.01'/><path d='M6 17h.01'/>"), ("Storage","RocksDB","Embedded KV","<ellipse cx='12' cy='5' rx='9' ry='3'/><path d='M3 5v14a9 3 0 0 0 18 0V5'/><path d='M3 12a9 3 0 0 0 18 0'/>") ]; for (role, name, desc, svg) in layers { %>
+          <div class="hidden lg:block flex-1 h-px bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 mx-2 self-center relative overflow-hidden"></div>
+          <div class="flex-1 flex flex-col items-center text-center min-w-0">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-3">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><%- svg %></svg>
+            </div>
+            <p class="text-[10px] font-mono uppercase tracking-wider text-stone-500"><%= role %></p>
+            <p class="text-sm font-semibold text-stone-900 dark:text-stone-100 mt-0.5"><%= name %></p>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-0.5"><%= desc %></p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-stone-200 dark:border-stone-800 py-8 mt-auto">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="w-3 h-3 text-white" fill="currentColor"><path d="M13 2L4 14h7l-2 8 9-12h-7l2-8z"/></svg>
+            </span>
+            <span class="text-sm font-medium text-stone-700 dark:text-stone-300">Laju Rust</span>
+          </div>
+          <p class="text-sm text-stone-500 dark:text-stone-400 text-center sm:text-right">Built with Axum + Inertia.js + Svelte 5 + Tailwind CSS 4</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <% if dev_mode { %>
+  <script type="module" src="<%= asset_url %>/ui/main.ts"></script>
+  <% } %>
+</body>
+</html>

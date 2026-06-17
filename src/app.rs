@@ -8,6 +8,7 @@ use crate::routes;
 /// Shared application state — di-inject ke handlers via Extension.
 pub struct AppState {
     pub db: Arc<rocksdb::DB>,
+    pub config: AppConfig,
 }
 
 /// Build Axum Router dengan semua routes, middleware, dan state.
@@ -17,7 +18,7 @@ pub fn build(inertia_config: axum_inertia::InertiaConfig) -> Router {
     let db = Arc::new(crate::db::rocksdb::init(&config.db_path)
         .expect("Failed to initialize RocksDB"));
 
-    let app_state = Arc::new(AppState { db });
+    let app_state = Arc::new(AppState { db, config: config.clone() });
 
     routes::register(Router::new())
         .nest_service("/assets", ServeDir::new("dist/assets"))
